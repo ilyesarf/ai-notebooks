@@ -21,37 +21,37 @@ class Grid:
         n = (self.H-(30*2))//self.space #max dots in a column
         if self.H != self.W:
             m = (self.W-(30*2))//self.space #max dots in a row
-            return n, m
+            return n, m #rectangle n != m
         
-        return n, 0
+        return n, n #square, n = m
     
     def generate_dots(self):
-        if self.m == 0:
-            for count in self.n:
-                dot = Dot()
-                dot.px = 0
+        dots = []
 
-        pass
+        for col in range(self.n):
+            for row in range(self.m):
+                dot = Dot()
+                    
+                dot.px = 30+(self.space*col)
+                dot.py = 30+(self.space*row)
+                dots.append(dot)
+        
+
+        return dots
 
 
     def draw_dots(self):
-        n, m = max_dots()
-        if m == 0:
-            for dot in range(n):
-                pass
+        dots = self.generate_dots()
+        radius = 10
+        color = 'green'
 
+        for dot in dots:
+            pygame.draw.circle(self.screen, color, (dot.px, dot.py), radius)       
+    
     def generate_grid(self):
         pygame.display.set_caption('Gridding')
         
-        color = 'green'
-        radius = 10
-       
-        for i in range(self.n):
-            px = 30+(self.space*i)
-            for j in range(self.n):
-                py = 30+(self.space*j)
-                pygame.draw.circle(self.screen, color, (px, py), radius)       
-        
+        self.draw_dots() 
         pygame.display.flip()
         pygame.display.update()
        
