@@ -10,7 +10,7 @@ class Dot:
 
 class Grid:
     def __init__(self):
-        self.H = 1000
+        self.H = 800
         self.W = 1000
         self.screen = pygame.display.set_mode((self.W, self.H)) 
         self.n, self.m = self.maxn_dots()
@@ -32,8 +32,8 @@ class Grid:
             for row in range(self.m):
                 dot = Dot()
                     
-                dot.px = 30+(self.space*col)
-                dot.py = 30+(self.space*row)
+                dot.px = 30+(self.space*row)
+                dot.py = 30+(self.space*col)
                 dots.append(dot)
         
 
