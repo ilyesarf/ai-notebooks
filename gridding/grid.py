@@ -1,8 +1,6 @@
-from this import d
 import pygame
 pygame.init()
 import math
-import time
 
 class Dot:
 	def __init__(self):
@@ -31,7 +29,7 @@ class Grid:
 
 	### self.dots ###
 	def maxn_dots(self):
-		self.space = 70
+		self.space = 73
 
 		n = (self.H-(30*2))//self.space #max self.dots in a column
 		if self.H != self.W:
@@ -80,7 +78,7 @@ class Grid:
 					sqr_x = (mouse_pos[0] - dot.px)**2
 					sqr_y = (mouse_pos[1] - dot.py)**2
 
-					if math.sqrt(sqr_x + sqr_y) < self.radius: #click in circle
+					if math.sqrt(sqr_x + sqr_y) < self.radius: #is click in circle
 						return dot
 					else:
 						pass
@@ -111,19 +109,19 @@ class Grid:
 		link.color = color
 
 		if dot1.py == dot2.py: #same column, horizontal link
-			if dot1.px < dot2.px:
+			if dot1.px < dot2.px: #right to left
 				link.p1x, link.p1y = dot1.px+self.radius, dot1.py
 				link.p2x, link.p2y = dot2.px-self.radius, dot2.py
-			else:
+			else: #left to right
 				link.p1x, link.p1y = dot1.px-self.radius, dot1.py
 				link.p2x, link.p2y = dot2.px+self.radius, dot2.py
 		
 
 		elif dot1.px == dot2.px: #same row, vertical link
-			if dot1.py < dot2.py:
+			if dot1.py < dot2.py: #up to down
 				link.p1x, link.p1y = dot1.px, dot1.py+self.radius
 				link.p2x, link.p2y = dot2.px, dot2.py-self.radius
-			else:
+			else: #down to up
 				link.p1x, link.p1y = dot1.px, dot1.py-self.radius
 				link.p2x, link.p2y = dot2.px, dot2.py+self.radius
 		
@@ -133,11 +131,16 @@ class Grid:
 		for event in pygame.event.get():
 			if event.type == pygame.MOUSEBUTTONDOWN:
 				dot = self.click_dot()
-				color = 'white'
 
 				if dot:
-					print(id(dot))
 					if self.clicked_dot and (self.clicked_dot.px, self.clicked_dot.py) in [(dot.px+self.space, dot.py), (dot.px-self.space, dot.py), (dot.px, dot.py+self.space), (dot.px, dot.py-self.space)]: #check if clicked_dot is near dot
+						if self.turn == 0:
+							color = 'cyan'
+							self.turn = 1
+						else:
+							color = 'purple'
+							self.turn = 0
+
 						link = self.create_link(self.clicked_dot, dot, color)
 						self.links.append(link)
 
@@ -147,31 +150,41 @@ class Grid:
 							for index, item in enumerate(col):
 								if id(item) == id(self.clicked_dot):
 									col[index].links += 1
-
+						
 						self.clicked_dot = None
 
 					elif dot.links < self.neighboring_dots(dot):
 						self.clicked_dot = dot
 				else:
 					self.clicked_dot = None
+		
+	def write_turn(self):
+		font = pygame.font.Font('freesansbold.ttf', 20)
+		text = font.render(f"It\'s {self.turn} turn", True, 'red')
+		
+		textRect = text.get_rect()
+		textRect.center = (self.W // 2, 10)
+
+		self.screen.blit(text, textRect)
 
 	def generate_grid(self):
 		self.links = []
+		self.turn = 0
 
 		pygame.display.set_caption('Gridding')
 		
 		self.draw_dots()
 		
-		running = True
 		self.clicked_dot = None
-		while running:
+
+		while True:
 			if pygame.event.get(pygame.QUIT): break
 
 			self.screen.fill("black")
-			
+			self.write_turn()
+
 			self.link_dots()
 		
-
 			self.draw_dots()
 		
 			pygame.display.flip()	
