@@ -1,6 +1,7 @@
 import pygame
 pygame.init()
 import math
+import os
 
 class Dot:
 	def __init__(self):
@@ -16,29 +17,39 @@ class Link:
 		self.p2x: float
 		self.p2y: float
 
-		self.color = ""	
-
-
+		self.player = 0	
+	
 class Grid:
 	def __init__(self):
+		self.players = 2
+		self.link_colors = ['cyan', 'purple', 'yellow', 'white']
+
 		self.H = 800
 		self.W = 800
-		self.screen = pygame.display.set_mode((self.W, self.H)) 
-		self.n, self.m = self.maxn_dots()
+		self.screen = pygame.display.set_mode((self.W, self.H))
+		
+		self.space = 75
+		if not os.getenv('DEBUG'):
+			self.n, self.m = self.maxn_dots()
+		else:
+			self.n, self.m = 2, 3
+
+		self.possible_links = self.maxn_links()
+
 		self.generate_dots()
+	
 
-	### self.dots ###
+	### DOTS ###
 	def maxn_dots(self):
-		self.space = 73
-
-		n = (self.H-(30*2))//self.space #max self.dots in a column
+		n = (self.H-(30*2))//self.space #max dots in a column
 		if self.H != self.W:
-			m = (self.W-(30*2))//self.space #max self.dots in a row
+			m = (self.W-(30*2))//self.space #max dots in a row
 			return n, m #rectangle n != m
 
 		return n, n #square, n = m
 	
-	def neighboring_dots(self, dot): #max self.links per dot
+
+	def neighboring_dots(self, dot): #max links per dot
 		neighbors = 0
 
 		all_pos = []
@@ -55,14 +66,15 @@ class Grid:
 	def generate_dots(self):
 		self.dots = []
 		
-		for i in range(self.n+1):
+		for i in range(self.n):
 			col = []
-			for row in range(self.m+1):
+			for row in range(self.m):
 				dot = Dot()
 
 				dot.px = 30+(self.space*row)
 				dot.py = 30+(self.space*i)
 				col.append(dot)
+
 			self.dots.append(col)
 
 
@@ -95,37 +107,50 @@ class Grid:
 		
 		if len(self.links) > 0: 
 			for link in self.links:
-				pygame.draw.line(self.screen, link.color, (link.p1x, link.p1y), (link.p2x, link.p2y))
+				pygame.draw.line(self.screen, self.link_colors[link.player], (link.p1x, link.p1y), (link.p2x, link.p2y))
 
 	### LINKS ###
 	def maxn_links(self):
 		if self.n != self.m:
-			return self.n*(self.m-1)+self.m*(self.n-1)
+			return 2*(self.n*(self.m-1)+self.m*(self.n-1))
 		
-		return 2*(self.n**2-self.n)		
+		return 4*(self.n**2-self.n)		
 
-	def create_link(self, dot1, dot2, color):
+	def create_link(self, dot1, dot2):
 		link = Link()
-		link.color = color
+		link.player = self.turn
 
 		if dot1.py == dot2.py: #same column, horizontal link
 			if dot1.px < dot2.px: #right to left
-				link.p1x, link.p1y = dot1.px+self.radius, dot1.py
-				link.p2x, link.p2y = dot2.px-self.radius, dot2.py
-			else: #left to right
-				link.p1x, link.p1y = dot1.px-self.radius, dot1.py
-				link.p2x, link.p2y = dot2.px+self.radius, dot2.py
+				right_dot = dot1
+				left_dot = dot2	
+			else: #reverse left to right
+				right_dot = dot2
+				left_dot = dot1
+				
+			link.p1x, link.p1y = right_dot.px+self.radius, dot1.py
+			link.p2x, link.p2y = left_dot.px-self.radius, dot2.py
 		
 
 		elif dot1.px == dot2.px: #same row, vertical link
 			if dot1.py < dot2.py: #up to down
-				link.p1x, link.p1y = dot1.px, dot1.py+self.radius
-				link.p2x, link.p2y = dot2.px, dot2.py-self.radius
+				up_dot = dot1
+				down_dot = dot2
+				
 			else: #down to up
-				link.p1x, link.p1y = dot1.px, dot1.py-self.radius
-				link.p2x, link.p2y = dot2.px, dot2.py+self.radius
-		
+				up_dot = dot2
+				down_dot = dot1
+
+			link.p1x, link.p1y = dot1.px, up_dot.py+self.radius
+			link.p2x, link.p2y = dot2.px, down_dot.py-self.radius
+
 		return link
+	
+	def link_exists(self, link):
+		all_links_pos = [(link2.p1x, link2.p1y, link2.p2x, link2.p2y) for link2 in self.links]
+		
+		return (link.p1x, link.p1y, link.p2x, link.p2y) in all_links_pos
+
 	
 	def link_dots(self):
 		for event in pygame.event.get():
@@ -134,22 +159,25 @@ class Grid:
 
 				if dot:
 					if self.clicked_dot and (self.clicked_dot.px, self.clicked_dot.py) in [(dot.px+self.space, dot.py), (dot.px-self.space, dot.py), (dot.px, dot.py+self.space), (dot.px, dot.py-self.space)]: #check if clicked_dot is near dot
-						if self.turn == 0:
-							color = 'cyan'
-							self.turn = 1
-						else:
-							color = 'purple'
-							self.turn = 0
-
-						link = self.create_link(self.clicked_dot, dot, color)
-						self.links.append(link)
-
-						dot.links += 1
 						
-						for col in self.dots:
-							for index, item in enumerate(col):
-								if id(item) == id(self.clicked_dot):
-									col[index].links += 1
+						link = self.create_link(self.clicked_dot, dot)
+
+						if not self.link_exists(link):
+							self.links.append(link)
+
+							dot.links += 1
+							
+							for col in self.dots:
+								for index, item in enumerate(col):
+									if id(item) == id(self.clicked_dot):
+										col[index].links += 1
+							
+							if self.turn == 0:
+								self.turn = 1
+							else:
+								self.turn = 0
+
+							self.possible_links -= 2
 						
 						self.clicked_dot = None
 
@@ -158,14 +186,24 @@ class Grid:
 				else:
 					self.clicked_dot = None
 		
+	### SQUARES ###
+		def is_square(self):
+			pass
+
+		def draw_square(self):
+			pass
+
+
+	### OTHER ###
 	def write_turn(self):
 		font = pygame.font.Font('freesansbold.ttf', 20)
-		text = font.render(f"It\'s {self.turn} turn", True, 'red')
+		text = font.render(f"It\'s {self.turn+1} player's turn", True, 'red')
 		
 		textRect = text.get_rect()
 		textRect.center = (self.W // 2, 10)
 
 		self.screen.blit(text, textRect)
+
 
 	def generate_grid(self):
 		self.links = []
@@ -173,11 +211,10 @@ class Grid:
 
 		pygame.display.set_caption('Gridding')
 		
-		self.draw_dots()
 		
 		self.clicked_dot = None
 
-		while True:
+		while self.possible_links > 0:
 			if pygame.event.get(pygame.QUIT): break
 
 			self.screen.fill("black")
@@ -186,11 +223,26 @@ class Grid:
 			self.link_dots()
 		
 			self.draw_dots()
+			
+			pygame.display.flip()
 		
-			pygame.display.flip()	
+		else:	
+			print('Game ended')
+			self.draw_dots()
+			pygame.display.flip()
+				
+				
+			"""
+			winners = self.get_winners()
+			if winners > 1:
+				print(f"It\'s a draw between {'&'.join([str(winner) for winner in winners])}")
+			else:
+				print(f'{winners[0]} won!!')
+			"""
+				
 
 			
-			
+#TODO: links or connected_dots?
 	
 if __name__ == '__main__':
 	Grid().generate_grid()
