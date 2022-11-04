@@ -98,6 +98,7 @@ class Grid:
 			else:
 				pass
 
+
 	def draw_dots(self):
 		self.radius = 10
 
@@ -108,13 +109,16 @@ class Grid:
 		if len(self.links) > 0: 
 			for link in self.links:
 				pygame.draw.line(self.screen, self.link_colors[link.player], (link.p1x, link.p1y), (link.p2x, link.p2y))
+	
 
+	
 	### LINKS ###
 	def maxn_links(self):
 		if self.n != self.m:
 			return 2*(self.n*(self.m-1)+self.m*(self.n-1))
 		
 		return 4*(self.n**2-self.n)		
+
 
 	def create_link(self, dot1, dot2):
 		link = Link()
@@ -146,12 +150,13 @@ class Grid:
 
 		return link
 	
+
 	def link_exists(self, link):
 		all_links_pos = [(link2.p1x, link2.p1y, link2.p2x, link2.p2y) for link2 in self.links]
 		
 		return (link.p1x, link.p1y, link.p2x, link.p2y) in all_links_pos
 
-	
+
 	def link_dots(self):
 		for event in pygame.event.get():
 			if event.type == pygame.MOUSEBUTTONDOWN:
@@ -163,14 +168,23 @@ class Grid:
 						link = self.create_link(self.clicked_dot, dot)
 
 						if not self.link_exists(link):
+							
+							if link.p1y == link.p2y: #horizontal
+								print((link.p1x-self.radius, link.p1y),(link.p2x+self.radius, link.p2y))
+							elif link.p1x == link.p2x: #vertical
+								print((link.p1x, link.p1y-self.radius), (link.p2x, link.p2y+self.radius))
+							
+							
 							self.links.append(link)
 
-							dot.links += 1
-							
 							for col in self.dots:
 								for index, item in enumerate(col):
 									if id(item) == id(self.clicked_dot):
 										col[index].links += 1
+										
+							dot.links += 1
+							
+							
 							
 							if self.turn == 0:
 								self.turn = 1
@@ -186,12 +200,14 @@ class Grid:
 				else:
 					self.clicked_dot = None
 		
+	
+	
 	### SQUARES ###
-		def is_square(self):
-			pass
-
-		def draw_square(self):
-			pass
+	def is_square(self):
+		pass
+	
+	def draw_square(self):
+		pass
 
 
 	### OTHER ###
@@ -230,7 +246,7 @@ class Grid:
 			print('Game ended')
 			self.draw_dots()
 			pygame.display.flip()
-				
+			pygame.time.delay(10*1000)
 				
 			"""
 			winners = self.get_winners()
