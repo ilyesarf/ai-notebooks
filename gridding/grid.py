@@ -2,12 +2,28 @@ import pygame
 pygame.init()
 import math
 import os
+import screeninfo
 
 class Dot:
 	def __init__(self):
 		self.px: float
 		self.py: float
 		self.links = 0
+		self.radius = 15
+
+	def neighboring_dots(self, space, dots): #max links per dot
+		neighbors = 0
+
+		all_pos = []
+		for col in range(len(dots)):
+			for d in dots[col]:
+				all_pos.append((d.px, d.py))
+		
+		for pos in [(self.px+space, self.py), (self.px-space, self.py), (self.px, self.py+space), (self.px, self.py-space)]:
+			if pos in all_pos:
+				neighbors += 1
+		
+		return neighbors
 
 class Link:
 	def __init__(self):
@@ -23,9 +39,9 @@ class Grid:
 	def __init__(self):
 		self.players = 2
 		self.link_colors = ['cyan', 'purple', 'yellow', 'white']
-
-		self.H = 800
-		self.W = 800
+		self.monitor = screeninfo.get_monitors()[0]
+		self.H = self.monitor.height-300
+		self.W = self.monitor.width-300
 		self.screen = pygame.display.set_mode((self.W, self.H))
 		
 		self.space = 75
@@ -46,22 +62,7 @@ class Grid:
 			m = (self.W-(30*2))//self.space #max dots in a row
 			return n, m #rectangle n != m
 
-		return n, n #square, n = m
-	
-
-	def neighboring_dots(self, dot): #max links per dot
-		neighbors = 0
-
-		all_pos = []
-		for col in range(len(self.dots)):
-			for d in self.dots[col]:
-				all_pos.append((d.px, d.py))
-		
-		for pos in [(dot.px+self.space, dot.py), (dot.px-self.space, dot.py), (dot.px, dot.py+self.space), (dot.px, dot.py-self.space)]:
-			if pos in all_pos:
-				neighbors += 1
-		
-		return neighbors	 
+		return n, n #square, n = m	 
 		
 	def generate_dots(self):
 		self.dots = []
@@ -72,25 +73,27 @@ class Grid:
 				dot = Dot()
 
 				dot.px = 30+(self.space*row)
-				dot.py = 30+(self.space*i)
+				dot.py = 100+(self.space*i)
 				col.append(dot)
 
 			self.dots.append(col)
 
 
 	def click_dot(self):
+		radius = 15
 		mouse_pos = pygame.mouse.get_pos()
 
 		for row in range(len(self.dots)): #check in which row the user clicked			
 
 			py = self.dots[row][0].py #the same px in the whole column
 
-			if mouse_pos[1] in range(py-self.radius, py+self.radius+1):
+			if mouse_pos[1] in range(py-radius, py+radius+1):
+				
 				for dot in self.dots[row]:
 					sqr_x = (mouse_pos[0] - dot.px)**2
 					sqr_y = (mouse_pos[1] - dot.py)**2
 
-					if math.sqrt(sqr_x + sqr_y) < self.radius: #is click in circle
+					if math.sqrt(sqr_x + sqr_y) < radius: #is click in circle
 						return dot
 					else:
 						pass
@@ -100,11 +103,10 @@ class Grid:
 
 
 	def draw_dots(self):
-		self.radius = 10
 
 		for col in self.dots:
 			for dot in col:					
-				pygame.draw.circle(self.screen, pygame.color.Color('red' if dot.links > 0 else 'green'), (dot.px, dot.py), self.radius)
+				pygame.draw.circle(self.screen, pygame.color.Color('red' if dot.links > 0 else 'green'), (dot.px, dot.py), dot.radius)
 		
 		if len(self.links) > 0: 
 			for link in self.links:
@@ -132,8 +134,8 @@ class Grid:
 				right_dot = dot2
 				left_dot = dot1
 				
-			link.p1x, link.p1y = right_dot.px+self.radius, dot1.py
-			link.p2x, link.p2y = left_dot.px-self.radius, dot2.py
+			link.p1x, link.p1y = right_dot.px+dot1.radius, dot1.py
+			link.p2x, link.p2y = left_dot.px-dot2.radius, dot2.py
 		
 
 		elif dot1.px == dot2.px: #same row, vertical link
@@ -145,8 +147,8 @@ class Grid:
 				up_dot = dot2
 				down_dot = dot1
 
-			link.p1x, link.p1y = dot1.px, up_dot.py+self.radius
-			link.p2x, link.p2y = dot2.px, down_dot.py-self.radius
+			link.p1x, link.p1y = dot1.px, up_dot.py+up_dot.radius
+			link.p2x, link.p2y = dot2.px, down_dot.py-down_dot.radius
 
 		return link
 	
@@ -163,16 +165,17 @@ class Grid:
 				dot = self.click_dot()
 
 				if dot:
-					if self.clicked_dot and (self.clicked_dot.px, self.clicked_dot.py) in [(dot.px+self.space, dot.py), (dot.px-self.space, dot.py), (dot.px, dot.py+self.space), (dot.px, dot.py-self.space)]: #check if clicked_dot is near dot
+					#check if clicked_dot is near dot
+					if self.clicked_dot and (self.clicked_dot.px, self.clicked_dot.py) in [(dot.px+self.space, dot.py), (dot.px-self.space, dot.py), (dot.px, dot.py+self.space), (dot.px, dot.py-self.space)]: 
 						
 						link = self.create_link(self.clicked_dot, dot)
 
 						if not self.link_exists(link):
 							
 							if link.p1y == link.p2y: #horizontal
-								print((link.p1x-self.radius, link.p1y),(link.p2x+self.radius, link.p2y))
+								print((link.p1x-dot.radius, link.p1y),(link.p2x+dot.radius, link.p2y))
 							elif link.p1x == link.p2x: #vertical
-								print((link.p1x, link.p1y-self.radius), (link.p2x, link.p2y+self.radius))
+								print((link.p1x, link.p1y-dot.radius), (link.p2x, link.p2y+dot.radius))
 							
 							
 							self.links.append(link)
@@ -184,8 +187,6 @@ class Grid:
 										
 							dot.links += 1
 							
-							
-							
 							if self.turn == 0:
 								self.turn = 1
 							else:
@@ -195,7 +196,7 @@ class Grid:
 						
 						self.clicked_dot = None
 
-					elif dot.links < self.neighboring_dots(dot):
+					elif dot.links < dot.neighboring_dots(self.space, self.dots):
 						self.clicked_dot = dot
 				else:
 					self.clicked_dot = None
@@ -212,14 +213,13 @@ class Grid:
 
 	### OTHER ###
 	def write_turn(self):
-		font = pygame.font.Font('freesansbold.ttf', 20)
+		font = pygame.font.Font('freesansbold.ttf', 40)
 		text = font.render(f"It\'s {self.turn+1} player's turn", True, 'red')
 		
 		textRect = text.get_rect()
-		textRect.center = (self.W // 2, 10)
+		textRect.center = (self.W // 2, 30)
 
 		self.screen.blit(text, textRect)
-
 
 	def generate_grid(self):
 		self.links = []
