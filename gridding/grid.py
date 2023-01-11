@@ -263,10 +263,11 @@ class Grid:
     
 if __name__ == '__main__':
     n, m = None, None
+
     if len(sys.argv) == 3:
         n, m = sys.argv[1:3]
     elif len(sys.argv) == 2:
-        n = sys.argv[2]
+        n = sys.argv[1]
         m = n
     
     Grid(int(n), int(m)).generate_grid()
